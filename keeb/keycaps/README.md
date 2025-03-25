@@ -12,9 +12,9 @@ Refer to the original repo for more details [braindefender/KLP-Lame-Keycaps](htt
 
 
 ## Printing 
-Upload [stl files](/stl/) to [JLCPCB 3d printing shop](https://jlc3dp.com/3d-printing-quote?spm=Jlc3dp.introduction_SLA.1005)
+Upload [stl files](stl/) to [JLCPCB 3d printing shop](https://jlc3dp.com/3d-printing-quote?spm=Jlc3dp.introduction_SLA.1005)
 
 ### Quantities
-- 4 x [KLP_Lame_MX_Normal](/stl/KLP_Lame_MX_Normal.stl)
-- 4 x [KLP_Lame_MX_Thumb](/stl/KLP_Lame_MX_Thumb.stl)
-- 6 x [Saddle Part 2](/stl/saddle2.stl)
+- 4 x [KLP_Lame_MX_Normal](stl/KLP_Lame_MX_Normal.stl)
+- 4 x [KLP_Lame_MX_Thumb](stl/KLP_Lame_MX_Thumb.stl)
+- 6 x [Saddle Part 2](stl/saddle2.stl)
