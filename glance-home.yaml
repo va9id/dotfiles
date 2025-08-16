@@ -21,22 +21,6 @@
         - UCtBjt766LG9EDVKZx4Q4IHw # pnl
         - UCFkew7OWYW2AViFz22dy4Og # beny jr
   columns:
-    - size: small
-      widgets:
-        - type: weather
-          location: Montreal, Canada
-          units: metric # alternatively "imperial"
-          hour-format: 24h # alternatively "24h"
-          hide-location: true
-
-        - type: markets
-          markets:
-            - symbol: SPY
-              name: S&P 500
-            - symbol: VFV.TO
-              name: Vanguard S&P 500
-            - symbol: XEQT.TO
-              name: iShares Core Equity
     - size: full
       widgets:
 
@@ -56,6 +40,22 @@
             show-thumbnails: false
             sort-by: top
             top-period: day
+    - size: small
+      widgets:
+      - type: weather
+        location: Montreal, Canada
+        units: metric # alternatively "imperial"
+        hour-format: 24h # alternatively "24h"
+        hide-location: true
+
+      - type: markets
+        markets:
+          - symbol: SPY
+            name: S&P 500
+          - symbol: VFV.TO
+            name: Vanguard S&P 500
+          - symbol: XEQT.TO
+            name: iShares Core Equity
 
 - name: Prem
   columns:
@@ -162,5 +162,524 @@
           {{ else }}
             <p style="color: #dc3545; padding: 12px;">Failed to fetch standings: {{ .Response.Status }}</p>
           {{ end }}
-        
 
+
+- name: La Liga
+  columns:
+    - size: full
+      widgets:
+      - type: custom-api
+        title: Standings
+        url: https://football-standings-api.vercel.app/leagues/esp.1/standings?season=2025&sort=asc
+        cache-duration: 12h
+        template: |
+          {{ if eq .Response.StatusCode 200 }}
+            {{ if .JSON.Bool "status" }}
+                <!-- League Table -->
+                <div style="overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <!-- Table Header -->
+                    <thead>
+                      <tr>
+                        <th style="padding: 12px 4px; text-align: left; "></th> <!-- Position -->
+                        <th style="padding: 12px 4px; text-align: left;">Team</th>
+                        <th style="padding: 12px 4px; text-align: center;">MP</th>
+                        <th style="padding: 12px 4px; text-align: center;">W</th>
+                        <th style="padding: 12px 4px; text-align: center;">D</th>
+                        <th style="padding: 12px 4px; text-align: center;">L</th>
+                        <th style="padding: 12px 4px; text-align: center;">GF</th>
+                        <th style="padding: 12px 4px; text-align: center;">GA</th>
+                        <th style="padding: 12px 4px; text-align: center;">GD</th>
+                        <th style="padding: 12px 8px; text-align: center;">Pts</th>
+                      </tr>
+                    </thead>
+                    <!-- Table Body -->
+                    <tbody>
+                      {{ range .JSON.Array "data.standings" }}
+                        {{ $rank := 0 }}
+                        {{ $gp := 0 }}
+                        {{ $wins := 0 }}
+                        {{ $draws := 0 }}
+                        {{ $losses := 0 }}
+                        {{ $gf := 0 }}
+                        {{ $ga := 0 }}
+                        {{ $gd := 0 }}
+                        {{ $points := 0 }}
+                        
+                        {{ range .Array "stats" }}
+                          {{ if eq (.String "name") "rank" }}
+                            {{ $rank = .Int "value" }}
+                          {{ else if eq (.String "name") "gamesPlayed" }}
+                            {{ $gp = .Int "value" }}
+                          {{ else if eq (.String "name") "wins" }}
+                            {{ $wins = .Int "value" }}
+                          {{ else if eq (.String "name") "ties" }}
+                            {{ $draws = .Int "value" }}
+                          {{ else if eq (.String "name") "losses" }}
+                            {{ $losses = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsFor" }}
+                            {{ $gf = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsAgainst" }}
+                            {{ $ga = .Int "value" }}
+                          {{ else if eq (.String "name") "pointDifferential" }}
+                            {{ $gd = .Int "value" }}
+                          {{ else if eq (.String "name") "points" }}
+                            {{ $points = .Int "value" }}
+                          {{ end }}
+                        {{ end }}
+                        
+                        <tr style="border-bottom: 1px solid #D3D3D3;">
+                          <!-- Position -->
+                          <td style="padding: 12px 8px; font-weight: 600;">{{ printf "%d" $rank }}</td>
+                          
+                          <!-- Team name with logo -->
+                          <td style="padding: 12px 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                              <!-- Team Logo
+                              {{ if .Exists "team.logos.0.href" }}
+                                <img src="{{ .String "team.logos.0.href" }}" style="width: 20px; height: 20px; object-fit: contain;" alt="{{ .String "team.shortDisplayName" }}">
+                              {{ end }}
+                              -->
+                              <span style="font-weight: 500;">{{ .String "team.shortDisplayName" }}</span>
+                            </div>
+                          </td>
+                          
+                          <!-- Stats -->
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gp }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #28a745;">{{ printf "%d" $wins }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #6c757d;">{{ printf "%d" $draws }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #dc3545;">{{ printf "%d" $losses }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gf }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $ga }}</td>
+                          <td style="padding: 12px 4px; text-align: center; {{ if gt $gd 0 }}color: #28a745;{{ else if lt $gd 0 }}color: #dc3545;{{ else }}color: #6c757d;{{ end }}">
+                            {{ if gt $gd 0 }}+{{ end }}{{ printf "%d" $gd }}
+                          </td>
+                          <td style="padding: 12px 8px; text-align: center; font-weight: 600; font-size: 14px;">{{ printf "%d" $points }}</td>
+                        </tr>
+                      {{ end }}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {{ else }}
+              <p style="color: #dc3545; padding: 12px;">API returned error status</p>
+            {{ end }}
+          {{ else }}
+            <p style="color: #dc3545; padding: 12px;">Failed to fetch standings: {{ .Response.Status }}</p>
+          {{ end }}
+        
+- name: Bundes
+  columns:
+    - size: full
+      widgets:
+      - type: custom-api
+        title: Standings
+        url: https://football-standings-api.vercel.app/leagues/ger.1/standings?season=2025&sort=asc
+        cache-duration: 12h
+        template: |
+          {{ if eq .Response.StatusCode 200 }}
+            {{ if .JSON.Bool "status" }}
+                <!-- League Table -->
+                <div style="overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <!-- Table Header -->
+                    <thead>
+                      <tr>
+                        <th style="padding: 12px 4px; text-align: left; "></th> <!-- Position -->
+                        <th style="padding: 12px 4px; text-align: left;">Team</th>
+                        <th style="padding: 12px 4px; text-align: center;">MP</th>
+                        <th style="padding: 12px 4px; text-align: center;">W</th>
+                        <th style="padding: 12px 4px; text-align: center;">D</th>
+                        <th style="padding: 12px 4px; text-align: center;">L</th>
+                        <th style="padding: 12px 4px; text-align: center;">GF</th>
+                        <th style="padding: 12px 4px; text-align: center;">GA</th>
+                        <th style="padding: 12px 4px; text-align: center;">GD</th>
+                        <th style="padding: 12px 8px; text-align: center;">Pts</th>
+                      </tr>
+                    </thead>
+                    <!-- Table Body -->
+                    <tbody>
+                      {{ range .JSON.Array "data.standings" }}
+                        {{ $rank := 0 }}
+                        {{ $gp := 0 }}
+                        {{ $wins := 0 }}
+                        {{ $draws := 0 }}
+                        {{ $losses := 0 }}
+                        {{ $gf := 0 }}
+                        {{ $ga := 0 }}
+                        {{ $gd := 0 }}
+                        {{ $points := 0 }}
+                        
+                        {{ range .Array "stats" }}
+                          {{ if eq (.String "name") "rank" }}
+                            {{ $rank = .Int "value" }}
+                          {{ else if eq (.String "name") "gamesPlayed" }}
+                            {{ $gp = .Int "value" }}
+                          {{ else if eq (.String "name") "wins" }}
+                            {{ $wins = .Int "value" }}
+                          {{ else if eq (.String "name") "ties" }}
+                            {{ $draws = .Int "value" }}
+                          {{ else if eq (.String "name") "losses" }}
+                            {{ $losses = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsFor" }}
+                            {{ $gf = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsAgainst" }}
+                            {{ $ga = .Int "value" }}
+                          {{ else if eq (.String "name") "pointDifferential" }}
+                            {{ $gd = .Int "value" }}
+                          {{ else if eq (.String "name") "points" }}
+                            {{ $points = .Int "value" }}
+                          {{ end }}
+                        {{ end }}
+                        
+                        <tr style="border-bottom: 1px solid #D3D3D3;">
+                          <!-- Position -->
+                          <td style="padding: 12px 8px; font-weight: 600;">{{ printf "%d" $rank }}</td>
+                          
+                          <!-- Team name with logo -->
+                          <td style="padding: 12px 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                              <!-- Team Logo
+                              {{ if .Exists "team.logos.0.href" }}
+                                <img src="{{ .String "team.logos.0.href" }}" style="width: 20px; height: 20px; object-fit: contain;" alt="{{ .String "team.shortDisplayName" }}">
+                              {{ end }}
+                              -->
+                              <span style="font-weight: 500;">{{ .String "team.shortDisplayName" }}</span>
+                            </div>
+                          </td>
+                          
+                          <!-- Stats -->
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gp }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #28a745;">{{ printf "%d" $wins }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #6c757d;">{{ printf "%d" $draws }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #dc3545;">{{ printf "%d" $losses }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gf }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $ga }}</td>
+                          <td style="padding: 12px 4px; text-align: center; {{ if gt $gd 0 }}color: #28a745;{{ else if lt $gd 0 }}color: #dc3545;{{ else }}color: #6c757d;{{ end }}">
+                            {{ if gt $gd 0 }}+{{ end }}{{ printf "%d" $gd }}
+                          </td>
+                          <td style="padding: 12px 8px; text-align: center; font-weight: 600; font-size: 14px;">{{ printf "%d" $points }}</td>
+                        </tr>
+                      {{ end }}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {{ else }}
+              <p style="color: #dc3545; padding: 12px;">API returned error status</p>
+            {{ end }}
+          {{ else }}
+            <p style="color: #dc3545; padding: 12px;">Failed to fetch standings: {{ .Response.Status }}</p>
+          {{ end }}
+        
+- name: Serie A
+  columns:
+    - size: full
+      widgets:
+      - type: custom-api
+        title: Standings
+        url: https://football-standings-api.vercel.app/leagues/ita.1/standings?season=2025&sort=asc
+        cache-duration: 12h
+        template: |
+          {{ if eq .Response.StatusCode 200 }}
+            {{ if .JSON.Bool "status" }}
+                <!-- League Table -->
+                <div style="overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <!-- Table Header -->
+                    <thead>
+                      <tr>
+                        <th style="padding: 12px 4px; text-align: left; "></th> <!-- Position -->
+                        <th style="padding: 12px 4px; text-align: left;">Team</th>
+                        <th style="padding: 12px 4px; text-align: center;">MP</th>
+                        <th style="padding: 12px 4px; text-align: center;">W</th>
+                        <th style="padding: 12px 4px; text-align: center;">D</th>
+                        <th style="padding: 12px 4px; text-align: center;">L</th>
+                        <th style="padding: 12px 4px; text-align: center;">GF</th>
+                        <th style="padding: 12px 4px; text-align: center;">GA</th>
+                        <th style="padding: 12px 4px; text-align: center;">GD</th>
+                        <th style="padding: 12px 8px; text-align: center;">Pts</th>
+                      </tr>
+                    </thead>
+                    <!-- Table Body -->
+                    <tbody>
+                      {{ range .JSON.Array "data.standings" }}
+                        {{ $rank := 0 }}
+                        {{ $gp := 0 }}
+                        {{ $wins := 0 }}
+                        {{ $draws := 0 }}
+                        {{ $losses := 0 }}
+                        {{ $gf := 0 }}
+                        {{ $ga := 0 }}
+                        {{ $gd := 0 }}
+                        {{ $points := 0 }}
+                        
+                        {{ range .Array "stats" }}
+                          {{ if eq (.String "name") "rank" }}
+                            {{ $rank = .Int "value" }}
+                          {{ else if eq (.String "name") "gamesPlayed" }}
+                            {{ $gp = .Int "value" }}
+                          {{ else if eq (.String "name") "wins" }}
+                            {{ $wins = .Int "value" }}
+                          {{ else if eq (.String "name") "ties" }}
+                            {{ $draws = .Int "value" }}
+                          {{ else if eq (.String "name") "losses" }}
+                            {{ $losses = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsFor" }}
+                            {{ $gf = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsAgainst" }}
+                            {{ $ga = .Int "value" }}
+                          {{ else if eq (.String "name") "pointDifferential" }}
+                            {{ $gd = .Int "value" }}
+                          {{ else if eq (.String "name") "points" }}
+                            {{ $points = .Int "value" }}
+                          {{ end }}
+                        {{ end }}
+                        
+                        <tr style="border-bottom: 1px solid #D3D3D3;">
+                          <!-- Position -->
+                          <td style="padding: 12px 8px; font-weight: 600;">{{ printf "%d" $rank }}</td>
+                          
+                          <!-- Team name with logo -->
+                          <td style="padding: 12px 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                              <!-- Team Logo
+                              {{ if .Exists "team.logos.0.href" }}
+                                <img src="{{ .String "team.logos.0.href" }}" style="width: 20px; height: 20px; object-fit: contain;" alt="{{ .String "team.shortDisplayName" }}">
+                              {{ end }}
+                              -->
+                              <span style="font-weight: 500;">{{ .String "team.shortDisplayName" }}</span>
+                            </div>
+                          </td>
+                          
+                          <!-- Stats -->
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gp }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #28a745;">{{ printf "%d" $wins }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #6c757d;">{{ printf "%d" $draws }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #dc3545;">{{ printf "%d" $losses }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gf }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $ga }}</td>
+                          <td style="padding: 12px 4px; text-align: center; {{ if gt $gd 0 }}color: #28a745;{{ else if lt $gd 0 }}color: #dc3545;{{ else }}color: #6c757d;{{ end }}">
+                            {{ if gt $gd 0 }}+{{ end }}{{ printf "%d" $gd }}
+                          </td>
+                          <td style="padding: 12px 8px; text-align: center; font-weight: 600; font-size: 14px;">{{ printf "%d" $points }}</td>
+                        </tr>
+                      {{ end }}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {{ else }}
+              <p style="color: #dc3545; padding: 12px;">API returned error status</p>
+            {{ end }}
+          {{ else }}
+            <p style="color: #dc3545; padding: 12px;">Failed to fetch standings: {{ .Response.Status }}</p>
+          {{ end }}
+        
+- name: Ligue 1
+  columns:
+    - size: full
+      widgets:
+      - type: custom-api
+        title: Standings
+        url: https://football-standings-api.vercel.app/leagues/fra.1/standings?season=2025&sort=asc
+        cache-duration: 12h
+        template: |
+          {{ if eq .Response.StatusCode 200 }}
+            {{ if .JSON.Bool "status" }}
+                <!-- League Table -->
+                <div style="overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <!-- Table Header -->
+                    <thead>
+                      <tr>
+                        <th style="padding: 12px 4px; text-align: left; "></th> <!-- Position -->
+                        <th style="padding: 12px 4px; text-align: left;">Team</th>
+                        <th style="padding: 12px 4px; text-align: center;">MP</th>
+                        <th style="padding: 12px 4px; text-align: center;">W</th>
+                        <th style="padding: 12px 4px; text-align: center;">D</th>
+                        <th style="padding: 12px 4px; text-align: center;">L</th>
+                        <th style="padding: 12px 4px; text-align: center;">GF</th>
+                        <th style="padding: 12px 4px; text-align: center;">GA</th>
+                        <th style="padding: 12px 4px; text-align: center;">GD</th>
+                        <th style="padding: 12px 8px; text-align: center;">Pts</th>
+                      </tr>
+                    </thead>
+                    <!-- Table Body -->
+                    <tbody>
+                      {{ range .JSON.Array "data.standings" }}
+                        {{ $rank := 0 }}
+                        {{ $gp := 0 }}
+                        {{ $wins := 0 }}
+                        {{ $draws := 0 }}
+                        {{ $losses := 0 }}
+                        {{ $gf := 0 }}
+                        {{ $ga := 0 }}
+                        {{ $gd := 0 }}
+                        {{ $points := 0 }}
+                        
+                        {{ range .Array "stats" }}
+                          {{ if eq (.String "name") "rank" }}
+                            {{ $rank = .Int "value" }}
+                          {{ else if eq (.String "name") "gamesPlayed" }}
+                            {{ $gp = .Int "value" }}
+                          {{ else if eq (.String "name") "wins" }}
+                            {{ $wins = .Int "value" }}
+                          {{ else if eq (.String "name") "ties" }}
+                            {{ $draws = .Int "value" }}
+                          {{ else if eq (.String "name") "losses" }}
+                            {{ $losses = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsFor" }}
+                            {{ $gf = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsAgainst" }}
+                            {{ $ga = .Int "value" }}
+                          {{ else if eq (.String "name") "pointDifferential" }}
+                            {{ $gd = .Int "value" }}
+                          {{ else if eq (.String "name") "points" }}
+                            {{ $points = .Int "value" }}
+                          {{ end }}
+                        {{ end }}
+                        
+                        <tr style="border-bottom: 1px solid #D3D3D3;">
+                          <!-- Position -->
+                          <td style="padding: 12px 8px; font-weight: 600;">{{ printf "%d" $rank }}</td>
+                          
+                          <!-- Team name with logo -->
+                          <td style="padding: 12px 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                              <!-- Team Logo
+                              {{ if .Exists "team.logos.0.href" }}
+                                <img src="{{ .String "team.logos.0.href" }}" style="width: 20px; height: 20px; object-fit: contain;" alt="{{ .String "team.shortDisplayName" }}">
+                              {{ end }}
+                              -->
+                              <span style="font-weight: 500;">{{ .String "team.shortDisplayName" }}</span>
+                            </div>
+                          </td>
+                          
+                          <!-- Stats -->
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gp }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #28a745;">{{ printf "%d" $wins }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #6c757d;">{{ printf "%d" $draws }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #dc3545;">{{ printf "%d" $losses }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gf }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $ga }}</td>
+                          <td style="padding: 12px 4px; text-align: center; {{ if gt $gd 0 }}color: #28a745;{{ else if lt $gd 0 }}color: #dc3545;{{ else }}color: #6c757d;{{ end }}">
+                            {{ if gt $gd 0 }}+{{ end }}{{ printf "%d" $gd }}
+                          </td>
+                          <td style="padding: 12px 8px; text-align: center; font-weight: 600; font-size: 14px;">{{ printf "%d" $points }}</td>
+                        </tr>
+                      {{ end }}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {{ else }}
+              <p style="color: #dc3545; padding: 12px;">API returned error status</p>
+            {{ end }}
+          {{ else }}
+            <p style="color: #dc3545; padding: 12px;">Failed to fetch standings: {{ .Response.Status }}</p>
+          {{ end }}
+
+- name: Brazil
+  columns:
+    - size: full
+      widgets:
+      - type: custom-api
+        title: Standings
+        url: https://football-standings-api.vercel.app/leagues/bra.1/standings?season=2025&sort=asc
+        cache-duration: 12h
+        template: |
+          {{ if eq .Response.StatusCode 200 }}
+            {{ if .JSON.Bool "status" }}
+                <!-- League Table -->
+                <div style="overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <!-- Table Header -->
+                    <thead>
+                      <tr>
+                        <th style="padding: 12px 4px; text-align: left; "></th> <!-- Position -->
+                        <th style="padding: 12px 4px; text-align: left;">Team</th>
+                        <th style="padding: 12px 4px; text-align: center;">MP</th>
+                        <th style="padding: 12px 4px; text-align: center;">W</th>
+                        <th style="padding: 12px 4px; text-align: center;">D</th>
+                        <th style="padding: 12px 4px; text-align: center;">L</th>
+                        <th style="padding: 12px 4px; text-align: center;">GF</th>
+                        <th style="padding: 12px 4px; text-align: center;">GA</th>
+                        <th style="padding: 12px 4px; text-align: center;">GD</th>
+                        <th style="padding: 12px 8px; text-align: center;">Pts</th>
+                      </tr>
+                    </thead>
+                    <!-- Table Body -->
+                    <tbody>
+                      {{ range .JSON.Array "data.standings" }}
+                        {{ $rank := 0 }}
+                        {{ $gp := 0 }}
+                        {{ $wins := 0 }}
+                        {{ $draws := 0 }}
+                        {{ $losses := 0 }}
+                        {{ $gf := 0 }}
+                        {{ $ga := 0 }}
+                        {{ $gd := 0 }}
+                        {{ $points := 0 }}
+                        
+                        {{ range .Array "stats" }}
+                          {{ if eq (.String "name") "rank" }}
+                            {{ $rank = .Int "value" }}
+                          {{ else if eq (.String "name") "gamesPlayed" }}
+                            {{ $gp = .Int "value" }}
+                          {{ else if eq (.String "name") "wins" }}
+                            {{ $wins = .Int "value" }}
+                          {{ else if eq (.String "name") "ties" }}
+                            {{ $draws = .Int "value" }}
+                          {{ else if eq (.String "name") "losses" }}
+                            {{ $losses = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsFor" }}
+                            {{ $gf = .Int "value" }}
+                          {{ else if eq (.String "name") "pointsAgainst" }}
+                            {{ $ga = .Int "value" }}
+                          {{ else if eq (.String "name") "pointDifferential" }}
+                            {{ $gd = .Int "value" }}
+                          {{ else if eq (.String "name") "points" }}
+                            {{ $points = .Int "value" }}
+                          {{ end }}
+                        {{ end }}
+                        
+                        <tr style="border-bottom: 1px solid #D3D3D3;">
+                          <!-- Position -->
+                          <td style="padding: 12px 8px; font-weight: 600;">{{ printf "%d" $rank }}</td>
+                          
+                          <!-- Team name with logo -->
+                          <td style="padding: 12px 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                              <!-- Team Logo
+                              {{ if .Exists "team.logos.0.href" }}
+                                <img src="{{ .String "team.logos.0.href" }}" style="width: 20px; height: 20px; object-fit: contain;" alt="{{ .String "team.shortDisplayName" }}">
+                              {{ end }}
+                              -->
+                              <span style="font-weight: 500;">{{ .String "team.shortDisplayName" }}</span>
+                            </div>
+                          </td>
+                          
+                          <!-- Stats -->
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gp }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #28a745;">{{ printf "%d" $wins }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #6c757d;">{{ printf "%d" $draws }}</td>
+                          <td style="padding: 12px 4px; text-align: center; color: #dc3545;">{{ printf "%d" $losses }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $gf }}</td>
+                          <td style="padding: 12px 4px; text-align: center;">{{ printf "%d" $ga }}</td>
+                          <td style="padding: 12px 4px; text-align: center; {{ if gt $gd 0 }}color: #28a745;{{ else if lt $gd 0 }}color: #dc3545;{{ else }}color: #6c757d;{{ end }}">
+                            {{ if gt $gd 0 }}+{{ end }}{{ printf "%d" $gd }}
+                          </td>
+                          <td style="padding: 12px 8px; text-align: center; font-weight: 600; font-size: 14px;">{{ printf "%d" $points }}</td>
+                        </tr>
+                      {{ end }}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {{ else }}
+              <p style="color: #dc3545; padding: 12px;">API returned error status</p>
+            {{ end }}
+          {{ else }}
+            <p style="color: #dc3545; padding: 12px;">Failed to fetch standings: {{ .Response.Status }}</p>
+          {{ end }}
